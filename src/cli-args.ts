@@ -23,7 +23,8 @@ function getArg(args: string[], name: string, fallback: string): string {
  * @throws {Error} When `--port` is missing a valid integer in the 1-65535 range.
  */
 export function parseDashboardArgs(args: string[]): DashboardArgs {
-  const rawPort = getArg(args, "--port", "3000");
+  const portIndex = args.indexOf("--port");
+  const rawPort = portIndex === -1 ? "3000" : (args[portIndex + 1] ?? "");
   if (!/^\d+$/.test(rawPort)) {
     throw new Error(`Error: --port must be a number between 1 and 65535. Got: "${rawPort}"`);
   }
