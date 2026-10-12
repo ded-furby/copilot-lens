@@ -1,23 +1,38 @@
 #!/usr/bin/env node
 
-process.on("uncaughtException", (error: unknown) => {
-  console.error("Uncaught error:", formatErrorMessage(error));
-});
-process.on("unhandledRejection", (err: unknown) => {
-  console.error("Unhandled rejection:", formatErrorMessage(err));
-});
+export function meetsNodeRequirement(versionString: string): boolean {
+  const [major] = versionString.split('.').map(Number);
+  return major >= 20;
+}
+
+// Node.js version gate — must run before any modern syntax/APIs.
+if (!meetsNodeRequirement(process.versions.node)) {
+  console.error(
+    `Error: copilot-lens requires Node.js 20 or later. You are running v${process.versions.node}.`
+  );
+  process.exit(1);
+}
 
 function formatErrorMessage(error: unknown): string {
   return error instanceof Error ? error.message : String(error);
 }
 
-const args = process.argv.slice(2);
+// Avoid running the CLI side-effects when imported by Vitest
+if (process.env.VITEST !== "true") {
+  process.on("uncaughtException", (error: unknown) => {
+    console.error("Uncaught error:", formatErrorMessage(error));
+  });
+  process.on("unhandledRejection", (err: unknown) => {
+    console.error("Unhandled rejection:", formatErrorMessage(err));
+  });
 
-if (args[0] === "tokens") {
-  const { runTokensTUI } = require("./cli-tokens");
-  runTokensTUI(args.slice(1));
-} else if (args[0] === "--help" || args[0] === "-h" || args[0] === "help") {
-  process.stdout.write(`
+  const args = process.argv.slice(2);
+
+  if (args[0] === "tokens") {
+    const { runTokensTUI } = require("./cli-tokens");
+    runTokensTUI(args.slice(1));
+  } else if (args[0] === "--help" || args[0] === "-h" || args[0] === "help") {
+    process.stdout.write(`
   Usage: copilot-lens [command] [options]
 
   Commands:
@@ -31,44 +46,46 @@ if (args[0] === "tokens") {
 
   Run "copilot-lens tokens --help" for tokens command options.
 `);
-} else {
-  const { createApp } = require("./server");
-  const { parseDashboardArgs } = require("./cli-args");
-  let host: string;
-  let port: number;
-  let shouldOpen: boolean;
+  } else {
+    const { createApp } = require("./server");
 
-  try {
-    ({ host, port, shouldOpen } = parseDashboardArgs(args));
-  } catch (error: unknown) {
-    console.error(formatErrorMessage(error));
-    process.exit(1);
-  }
+    const { parseDashboardArgs } = require("./cli-args");
+    let host: string;
+    let port: number;
+    let shouldOpen: boolean;
 
-  const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
-  if (!LOOPBACK_HOSTS.has(host)) {
-    console.warn(
-      `\n  ⚠️  Binding to ${host} exposes your AI session data to the network with no authentication.\n`
-    );
-  }
-
-  const app = createApp({ host });
-
-  app.listen(port, host, async () => {
-    const url = `http://${host}:${port}`;
-    console.log(`\n  👓 Copilot Lens is running at ${url}\n`);
-
-    if (shouldOpen) {
-      // Use execFile with an argument array (no shell) so the URL/host cannot
-      // be interpreted as shell syntax.
-      const { execFile } = await import("child_process");
-      if (process.platform === "win32") {
-        execFile("cmd", ["/c", "start", "", url]);
-      } else if (process.platform === "darwin") {
-        execFile("open", [url]);
-      } else {
-        execFile("xdg-open", [url]);
-      }
+    try {
+      ({ host, port, shouldOpen } = parseDashboardArgs(args));
+    } catch (error: unknown) {
+      console.error(formatErrorMessage(error));
+      process.exit(1);
     }
-  });
+
+    const LOOPBACK_HOSTS = new Set(["localhost", "127.0.0.1", "::1"]);
+    if (!LOOPBACK_HOSTS.has(host)) {
+      console.warn(
+        `\n  ⚠️  Binding to ${host} exposes your AI session data to the network with no authentication.\n`
+      );
+    }
+
+    const app = createApp({ host });
+
+    app.listen(port, host, async () => {
+      const url = `http://${host}:${port}`;
+      console.log(`\n  👓 Copilot Lens is running at ${url}\n`);
+
+      if (shouldOpen) {
+        // Use execFile with an argument array (no shell) so the URL/host cannot
+        // be interpreted as shell syntax.
+        const { execFile } = await import("child_process");
+        if (process.platform === "win32") {
+          execFile("cmd", ["/c", "start", "", url]);
+        } else if (process.platform === "darwin") {
+          execFile("open", [url]);
+        } else {
+          execFile("xdg-open", [url]);
+        }
+      }
+    });
+  }
 }
