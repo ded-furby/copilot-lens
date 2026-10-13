@@ -34,12 +34,23 @@ describe("parseDashboardArgs", () => {
   });
 });
 
-
 describe("port argument edge cases", () => {
   it("defaults only when the port flag is absent", () => {
     expect(parseDashboardArgs([]).port).toBe(3000);
   });
-  it.each([[], ["--open"], ["--host", "localhost"], [""], ["-1"], ["3000.5"], ["3000abc"], ["Infinity"], ["1e3"]])("rejects missing or invalid port values %j", (...values) => {
-    expect(() => parseDashboardArgs(["--port", ...values])).toThrow("--port must be a number between 1 and 65535");
+  it.each([
+    [],
+    ["--open"],
+    ["--host", "localhost"],
+    [""],
+    ["-1"],
+    ["3000.5"],
+    ["3000abc"],
+    ["Infinity"],
+    ["1e3"],
+  ])("rejects missing or invalid port values %j", (...values) => {
+    expect(() => parseDashboardArgs(["--port", ...values])).toThrow(
+      "--port must be a number between 1 and 65535"
+    );
   });
 });

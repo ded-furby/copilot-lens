@@ -26,12 +26,16 @@ export function parseDashboardArgs(args: string[]): DashboardArgs {
   const portIndex = args.indexOf("--port");
   const rawPort = portIndex === -1 ? "3000" : (args[portIndex + 1] ?? "");
   if (!/^\d+$/.test(rawPort)) {
-    throw new Error(`Error: --port must be a number between 1 and 65535. Got: "${rawPort}"`);
+    throw new Error(
+      `Error: --port must be a number between 1 and 65535. Got: "${rawPort}"`
+    );
   }
 
   const port = Number.parseInt(rawPort, 10);
   if (port < 1 || port > 65535) {
-    throw new Error(`Error: --port must be a number between 1 and 65535. Got: "${rawPort}"`);
+    throw new Error(
+      `Error: --port must be a number between 1 and 65535. Got: "${rawPort}"`
+    );
   }
 
   return {
